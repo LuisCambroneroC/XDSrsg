@@ -391,14 +391,21 @@ try {
         // Mover archivo temporal
         $uploadDir = __DIR__ . '/uploads/';
         if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+            if (!mkdir($uploadDir, 0755, true)) {
+                throw new Exception("No se pudo crear el directorio de uploads: {$uploadDir}");
+            }
+        }
+
+        if (!is_writable($uploadDir)) {
+            throw new Exception("El directorio de uploads no tiene permisos de escritura: {$uploadDir}");
         }
 
         $uniqueFilename = uniqid() . '_' . basename($file['name']);
         $targetPath = $uploadDir . $uniqueFilename;
 
         if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
-            throw new Exception("No se pudo guardar el archivo subido");
+            $error = error_get_last();
+            throw new Exception("No se pudo guardar el archivo subido. Error: " . ($error['message'] ?? 'Desconocido') . ". Verifique permisos en: {$uploadDir}");
         }
 
         // Guardar información del archivo en la base de datos
