@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<XDSDocument version="2.1" xmlns="http://example.com/xds">
+    <Metadata id="META001" name="Documento Clínico" required="true">
+        <Title>Informe de Laboratorio</Title>
+        <Author>Dr. Juan Pérez</Author>
+        <CreationDate>2024-01-15</CreationDate>
+        <Department>Patología Clínica</Department>
+    </Metadata>
+    <Patient id="PAT12345" mandatory="true">
+        <FirstName>María</FirstName>
+        <LastName>González Rodríguez</LastName>
+        <DateOfBirth>1985-06-20</DateOfBirth>
+        <Gender>F</Gender>
+        <Email>maria.gonzalez@email.com</Email>
+        <Phone>+34-612-345-678</Phone>
+        <Address>
+            <Street>Calle Mayor 123</Street>
+            <City>Madrid</City>
+            <PostalCode>28001</PostalCode>
+            <Country>España</Country>
+        </Address>
+    </Patient>
+    <Order id="ORD98765">
+        <OrderDate>2024-01-15T09:30:00</OrderDate>
+        <Physician>Dr. Antonio López</Physician>
+        <Priority>Normal</Priority>
+        <Tests>
+            <Test id="TEST001">
+                <Code>GLU</Code>
+                <Name>Glucosa en sangre</Name>
+                <Result value="95">
+                    <Unit>mg/dL</Unit>
+                    <ReferenceRange>70-100</ReferenceRange>
+                    <Status>Final</Status>
+                </Result>
+            </Test>
+            <Test id="TEST002">
+                <Code>HBA1C</Code>
+                <Name>Hemoglobina Glicosilada</Name>
+                <Result value="5.4">
+                    <Unit>%</Unit>
+                    <ReferenceRange>4.0-5.6</ReferenceRange>
+                    <Status>Final</Status>
+                </Result>
+            </Test>
+            <Test id="TEST003">
+                <Code>CHOL</Code>
+                <Name>Colesterol Total</Name>
+                <Result value="185.5">
+                    <Unit>mg/dL</Unit>
+                    <ReferenceRange>&lt;200</ReferenceRange>
+                    <Status>Final</Status>
+                </Result>
+            </Test>
+        </Tests>
+    </Order>
+    <Results summary="Todos los valores dentro del rango normal">
+        <Conclusion>
+            <Text>Los resultados obtenidos se encuentran dentro de los parámetros normales. Se recomienda continuar con el seguimiento periódico.</Text>
+            <ReviewedBy>Dra. Carmen Sánchez</ReviewedBy>
+            <ReviewDate>2024-01-15T14:00:00</ReviewDate>
+        </Conclusion>
+    </Results>
+</XDSDocument>

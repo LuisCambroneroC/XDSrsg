@@ -33,21 +33,22 @@ class XDSDatabase {
      * Guarda o actualiza la versión del archivo XDS
      */
     public function saveFileVersion($filename, $version, $uploadDate) {
-        $sql = "INSERT INTO xds_file_versions (filename, version, upload_date) 
-                VALUES (:filename, :version, :upload_date)
-                ON DUPLICATE KEY UPDATE version = :version_upd, upload_date = :upload_date_upd";
-        
+        $sql = "INSERT INTO xds_file_versions (file_name, version, file_path, created_at) 
+                VALUES (:file_name, :version, :file_path, :created_at)
+                ON DUPLICATE KEY UPDATE version = :version_upd, updated_at = CURRENT_TIMESTAMP";
+
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
-            ':filename' => $filename,
+            ':file_name' => $filename,
             ':version' => $version,
-            ':upload_date' => $upload_date,
-            ':version_upd' => $version,
-            ':upload_date_upd' => $upload_date
+            ':file_path' => 'uploads/' . $filename,
+            ':created_at' => $uploadDate,
+            ':version_upd' => $version
         ]);
-        
+
         return $this->pdo->lastInsertId();
     }
+
 
     /**
      * Obtiene o crea un tipo de dato
@@ -133,12 +134,12 @@ class XDSDatabase {
      * Obtiene todos los archivos cargados
      */
     public function getFileVersions() {
-        $sql = "SELECT fv.id, fv.filename, fv.version, fv.upload_date, 
+        $sql = "SELECT fv.id, fv.file_name as filename, fv.version, fv.created_at as upload_date,
                        COUNT(DISTINCT e.id) as element_count
                 FROM xds_file_versions fv
                 LEFT JOIN xds_elements e ON fv.id = e.file_version_id
                 GROUP BY fv.id
-                ORDER BY fv.upload_date DESC";
+                ORDER BY fv.created_at DESC";
         
         $stmt = $this->pdo->query($sql);
         return $stmt->fetchAll();
