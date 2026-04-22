@@ -1,36 +1,84 @@
 ```
-# Compiled and build artifacts
-*.pyc
-__pycache__/
+# Database migration files
+*.sql
 
-# Dependencies
-node_modules/
-venv/
-.venv/
+# Environment variables
 .env
 .env.local
-*.env.*
+.env.*
 
-# Editors
-.vscode/
-.idea/
-
-# Logs and temp files
+# Logs
 *.log
+
+# Temporary files
 *.tmp
 *.swp
+*.swo
 
-# System files
+# OS generated files
 .DS_Store
 Thumbs.db
 
-# Coverage
-coverage/
-htmlcov/
-.coverage
+# Dependencies
+node_modules/
+vendor/
 
-# Build directories
+# Build artifacts
 dist/
 build/
 target/
+*.out
+*.exe
+*.dll
+*.so
+*.a
+
+# Python specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+.MF
+tags
+TAGS
+id
+*.swp
+*~
+# Django specific
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+celerybeat-schedule
+# Flask specific
+instance/
+.webassets-cache
+# Jupyter Notebook
+.ipynb_checkpoints
+# pyenv
+.python-version
+# pipenv
+Pipfile.lock
+# PEP 582
+__pypackages__/
 ```
