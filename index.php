@@ -83,8 +83,8 @@ class XDSDatabase {
      * Guarda un elemento XDS
      */
     public function saveElement($fileVersionId, $elementName, $dataTypeId, $parentId = null, $orderIndex = 0) {
-        $sql = "INSERT INTO xds_elements (file_version_id, element_name, data_type_id, parent_element_id, order_index) 
-                VALUES (:file_version_id, :element_name, :data_type_id, :parent_element_id, :order_index)";
+        $sql = "INSERT INTO xds_elements (file_version_id, element_name, data_type_id, parent_element_id, element_order) 
+                VALUES (:file_version_id, :element_name, :data_type_id, :parent_element_id, :element_order)";
         
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
@@ -92,7 +92,7 @@ class XDSDatabase {
             ':element_name' => $elementName,
             ':data_type_id' => $dataTypeId,
             ':parent_element_id' => $parentId,
-            ':order_index' => $orderIndex
+            ':element_order' => $orderIndex
         ]);
         
         return $this->pdo->lastInsertId();
@@ -153,14 +153,14 @@ class XDSDatabase {
      * Obtiene la estructura jerárquica de un archivo
      */
     public function getFileHierarchy($fileVersionId) {
-        $sql = "SELECT e.id, e.element_name, dt.type_name, e.parent_element_id, e.order_index,
+        $sql = "SELECT e.id, e.element_name, dt.type_name, e.parent_element_id, e.element_order,
                        GROUP_CONCAT(a.attribute_name SEPARATOR ', ') as attributes
                 FROM xds_elements e
                 LEFT JOIN xds_data_types dt ON e.data_type_id = dt.id
                 LEFT JOIN xds_attributes a ON e.id = a.element_id
                 WHERE e.file_version_id = :file_version_id
                 GROUP BY e.id
-                ORDER BY e.order_index";
+                ORDER BY e.element_order";
         
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':file_version_id' => $fileVersionId]);
