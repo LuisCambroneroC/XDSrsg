@@ -1,4 +1,8 @@
 <?php
+// Habilitar reporte de errores para debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 /**
  * Configuración de la base de datos
  */
@@ -368,67 +372,106 @@ if (session_status() === PHP_SESSION_NONE) {
 $message = '';
 $messageType = '';
 $fileVersions = [];
+$db = null;
 
 try {
     $db = new XDSDatabase();
     
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['xds_file'])) {
-        $file = $_FILES['xds_file'];
-        $version = $_POST['version'] ?? '1.0';
-        
-        // Validar archivo
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            throw new Exception("Error al subir el archivo. Código de error: " . $file['error']);
-        }
-
-        $allowedExtensions = ['xml', 'xds', 'xsd'];
-        $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        
-        if (!in_array($extension, $allowedExtensions)) {
-            throw new Exception("Extensión de archivo no permitida. Use: " . implode(', ', $allowedExtensions));
-        }
-
-        // Mover archivo temporal
-        $uploadDir = __DIR__ . '/uploads/';
-        if (!is_dir($uploadDir)) {
-            if (!mkdir($uploadDir, 0755, true)) {
-                throw new Exception("No se pudo crear el directorio de uploads: {$uploadDir}");
+        try {
+            $file = $_FILES['xds_file'];
+            $version = $_POST['version'] ?? '1.0';
+            
+            // Validar archivo
+            if ($file['error'] !== UPLOAD_ERR_OK) {
+                $uploadErrors = [
+                    UPLOAD_ERR_INI_SIZE => 'El archivo excede el límite de upload_max_filesize en php.ini',
+                    UPLOAD_ERR_FORM_SIZE => 'El archivo excede el límite MAX_FILE_SIZE especificado en el formulario',
+                    UPLOAD_ERR_PARTIAL => 'El archivo solo fue parcialmente subido',
+                    UPLOAD_ERR_NO_FILE => 'Ningún archivo fue subido',
+                    UPLOAD_ERR_NO_TMP_DIR => 'Falta el directorio temporal',
+                    UPLOAD_ERR_CANT_WRITE => 'Falló la escritura del archivo en disco',
+                    UPLOAD_ERR_EXTENSION => 'Una extensión de PHP detuvo la carga del archivo'
+                ];
+                $errorMsg = $uploadErrors[$file['error']] ?? 'Error desconocido';
+                throw new Exception("Error al subir el archivo: {$errorMsg} (Código: {$file['error']})");
             }
+
+            $allowedExtensions = ['xml', 'xds', 'xsd'];
+            $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+            
+            if (!in_array($extension, $allowedExtensions)) {
+                throw new Exception("Extensión de archivo no permitida. Use: " . implode(', ', $allowedExtensions));
+            }
+
+            // Mover archivo temporal
+            $uploadDir = __DIR__ . '/uploads/';
+            if (!is_dir($uploadDir)) {
+                if (!mkdir($uploadDir, 0755, true)) {
+                    throw new Exception("No se pudo crear el directorio de uploads: {$uploadDir}");
+                }
+            }
+
+            if (!is_writable($uploadDir)) {
+                throw new Exception("El directorio de uploads no tiene permisos de escritura: {$uploadDir}");
+            }
+
+            $uniqueFilename = uniqid() . '_' . basename($file['name']);
+            $targetPath = $uploadDir . $uniqueFilename;
+
+            if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+                $error = error_get_last();
+                throw new Exception("No se pudo guardar el archivo subido. Error: " . ($error['message'] ?? 'Desconocido') . ". Verifique permisos en: {$uploadDir}");
+            }
+
+            // Guardar información del archivo en la base de datos
+            $uploadDate = date('Y-m-d H:i:s');
+            $fileVersionId = $db->saveFileVersion($file['name'], $version, $uploadDate);
+
+            // Procesar el archivo XML
+            $parser = new XDSParser($db);
+            $parser->processFile($targetPath, $fileVersionId);
+
+            $message = "Archivo '{$file['name']}' cargado exitosamente. Versión: {$version}";
+            $messageType = 'success';
+
+            // Limpiar archivo temporal después de procesar
+            // unlink($targetPath); // Descomentar si no quieres mantener los archivos
+            
+        } catch (Exception $e) {
+            // Si hay un error durante la subida, lanzarlo para que lo capture el catch externo
+            throw $e;
         }
-
-        if (!is_writable($uploadDir)) {
-            throw new Exception("El directorio de uploads no tiene permisos de escritura: {$uploadDir}");
-        }
-
-        $uniqueFilename = uniqid() . '_' . basename($file['name']);
-        $targetPath = $uploadDir . $uniqueFilename;
-
-        if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
-            $error = error_get_last();
-            throw new Exception("No se pudo guardar el archivo subido. Error: " . ($error['message'] ?? 'Desconocido') . ". Verifique permisos en: {$uploadDir}");
-        }
-
-        // Guardar información del archivo en la base de datos
-        $uploadDate = date('Y-m-d H:i:s');
-        $fileVersionId = $db->saveFileVersion($file['name'], $version, $uploadDate);
-
-        // Procesar el archivo XML
-        $parser = new XDSParser($db);
-        $parser->processFile($targetPath, $fileVersionId);
-
-        $message = "Archivo '{$file['name']}' cargado exitosamente. Versión: {$version}";
-        $messageType = 'success';
-
-        // Limpiar archivo temporal después de procesar
-        // unlink($targetPath); // Descomentar si no quieres mantener los archivos
     }
 
     // Obtener lista de archivos cargados
     $fileVersions = $db->getFileVersions();
 
 } catch (Exception $e) {
-    $message = "Error: " . $e->getMessage();
-    $messageType = 'error';
+    // Solo establecer mensaje de error si no es un error fatal de PHP
+    if (!isset($message) || empty($message)) {
+        $message = "Error: " . $e->getMessage();
+        $messageType = 'error';
+    }
+    // Si ya hay un mensaje de error del bloque interno, no lo sobrescribimos
+    
+    // Intentar obtener archivos si la DB está disponible
+    if ($db !== null) {
+        try {
+            $fileVersions = $db->getFileVersions();
+        } catch (Exception $ex) {
+            // Ignorar error al obtener versiones
+        }
+    }
+}
+
+// Obtener lista de archivos cargados si no se ha hecho y la DB está disponible
+if (empty($fileVersions) && $db !== null) {
+    try {
+        $fileVersions = $db->getFileVersions();
+    } catch (Exception $ex) {
+        // Ignorar error al obtener versiones
+    }
 }
 ?>
 <!DOCTYPE html>
